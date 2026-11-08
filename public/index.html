@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ប្រព័ន្ធគ្រប់គ្រងការលក់ - POS System</title>
+    <title>ប្រព័ន្ធគ្រប់គ្រងការលក់ - Ravy Store POS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -22,33 +22,33 @@
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col font-sans">
 
-    <!-- Header -->
+    <!-- Navigation Bar -->
     <header class="bg-emerald-600 text-white shadow-md flex-none z-10 px-4 py-3 flex justify-between items-center sticky top-0">
         <div class="flex items-center gap-3">
             <div class="bg-white text-emerald-600 p-2 rounded-lg font-bold text-xl shadow">
                 <i class="fa-solid fa-store"></i>
             </div>
             <div>
-                <h1 class="font-bold text-lg leading-tight">ប្រព័ន្ធគ្រប់គ្រងការលក់ (POS)</h1>
+                <h1 class="font-bold text-base sm:text-lg leading-tight">ប្រព័ន្ធគ្រប់គ្រងការលក់ (POS)</h1>
                 <p class="text-xs text-emerald-100">ហាងទំនិញ - Ravy Store | 096 255 7766 / 088 413 2413</p>
             </div>
         </div>
 
-        <div class="flex items-center gap-2 sm:gap-3">
-            <button onclick="toggleProductManagementModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs sm:text-sm px-3 py-2 rounded-lg transition flex items-center gap-2 shadow">
+        <div class="flex items-center gap-2">
+            <button onclick="toggleProductModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs sm:text-sm px-3 py-2 rounded-lg transition flex items-center gap-1.5 shadow">
                 <i class="fa-solid fa-plus-circle"></i>
                 <span class="font-semibold">បន្ថែមទំនិញ</span>
             </button>
-            <button onclick="toggleKhqrConfigModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs sm:text-sm px-3 py-2 rounded-lg transition flex items-center gap-2">
+            <button onclick="toggleKhqrModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs sm:text-sm px-3 py-2 rounded-lg transition flex items-center gap-1.5">
                 <i class="fa-solid fa-qrcode"></i>
-                <span class="hidden sm:inline font-semibold">កំណត់ KHQR</span>
+                <span class="hidden sm:inline font-semibold">KHQR</span>
             </button>
         </div>
     </header>
 
-    <!-- Main Container -->
+    <!-- Main Content -->
     <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
-        <!-- Products Column -->
+        <!-- Left Product Grid -->
         <div class="flex-1 flex flex-col p-3 sm:p-4 gap-4 overflow-y-auto">
             <div class="bg-white p-3 rounded-xl shadow-sm flex flex-col sm:flex-row gap-3 items-center justify-between">
                 <div class="relative w-full sm:w-72">
@@ -61,7 +61,7 @@
             <div id="products-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4"></div>
         </div>
 
-        <!-- Cart Column -->
+        <!-- Right Order Summary -->
         <div class="w-full md:w-96 bg-white border-t md:border-t-0 md:border-l border-slate-200 flex flex-col shadow-lg">
             <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                 <div class="flex items-center gap-2">
@@ -86,19 +86,19 @@
                     <div id="cart-total-khr" class="text-xl font-bold text-emerald-600">0 ៛</div>
                 </div>
 
-                <button onclick="alert('ការទូទាត់ប្រាក់បានជោគជ័យ!'); clearCart();" id="checkout-btn" disabled class="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-slate-300 disabled:cursor-not-allowed transition flex justify-center items-center gap-2">
+                <button onclick="alert('ទូទាត់ប្រាក់បានជោគជ័យ!'); clearCart();" id="checkout-btn" disabled class="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-slate-300 disabled:cursor-not-allowed transition flex justify-center items-center gap-2">
                     <i class="fa-solid fa-credit-card"></i> គិតប្រាក់ (Checkout)
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Add Product Modal -->
-    <div id="product-mgmt-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+    <!-- Product Modal -->
+    <div id="product-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden flex flex-col max-h-[85vh]">
             <div class="bg-emerald-600 text-white p-4 flex justify-between items-center">
                 <h3 class="font-bold text-lg"><i class="fa-solid fa-boxes-stacked mr-2"></i>បន្ថែមទំនិញថ្មី</h3>
-                <button onclick="toggleProductManagementModal()" class="text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+                <button onclick="toggleProductModal()" class="text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             <div class="p-4 overflow-y-auto flex flex-col gap-6">
                 <form id="add-product-form" onsubmit="handleAddNewProduct(event)" class="bg-slate-50 p-4 rounded-xl border flex flex-col gap-3">
@@ -136,7 +136,7 @@
     </div>
 
     <script>
-        const STORAGE_KEY = 'ravy_store_products_v2';
+        const STORAGE_KEY = 'ravy_pos_products_v3';
         
         const defaultProducts = [
             { id: 1, name: "កាហ្វេទឹកដោះគោ (Iced Latte)", category: "drink", price: 9000, image: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=300" },
@@ -145,28 +145,27 @@
             { id: 4, name: "នំប៉័ងប័រសូកូឡា (Croissant)", category: "bakery", price: 7500, image: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300" }
         ];
 
-        function loadProductsFromStorage() {
+        function loadProducts() {
             try {
-                const saved = localStorage.getItem(STORAGE_KEY);
-                if (saved) {
-                    const parsed = JSON.parse(saved);
-                    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-                }
-            } catch (e) {
-                console.error("Storage load error:", e);
+                const data = localStorage.getItem(STORAGE_KEY);
+                return data ? JSON.parse(data) : defaultProducts;
+            } catch(e) {
+                return defaultProducts;
             }
-            return defaultProducts;
         }
 
-        function saveProductsToStorage(data) {
+        function saveProducts(data) {
             try {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-            } catch (e) {
-                alert("មិនអាច Save ចូល Memory ទូរស័ព្ទបានទេ! សូមជ្រើសរើសរូបភាពតូចជាងនេះ។");
+            } catch(e) {
+                alert("មិនអាចរក្សាទុកបាន! សូមជ្រើសរើសរូបភាពទំហំតូចជាងនេះ។");
             }
         }
 
-        let products = loadProductsFromStorage();
+        let products = loadProducts();
+        let cart = [];
+        let currentCategory = "all";
+
         const categories = [
             { id: "all", name: "ទាំងអស់" },
             { id: "drink", name: "ភេសជ្ជៈ" },
@@ -175,65 +174,60 @@
             { id: "snack", name: "សម្រន់" }
         ];
 
-        let cart = [];
-        let currentFilterCategory = "all";
-
-        function initApp() {
+        document.addEventListener('DOMContentLoaded', () => {
             renderCategoryFilters();
             filterProducts();
             renderMgmtProductList();
-        }
-        document.addEventListener('DOMContentLoaded', initApp);
+        });
 
         function renderCategoryFilters() {
             const container = document.getElementById('category-filters');
             if (!container) return;
             container.innerHTML = categories.map(cat => `
-                <button onclick="setCategoryFilter('${cat.id}')" class="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap ${currentFilterCategory === cat.id ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'}">
+                <button onclick="setCategoryFilter('${cat.id}')" class="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap ${currentCategory === cat.id ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'}">
                     ${cat.name}
                 </button>
             `).join('');
         }
 
-        function setCategoryFilter(catId) {
-            currentFilterCategory = catId;
+        function setCategoryFilter(id) {
+            currentCategory = id;
             renderCategoryFilters();
             filterProducts();
         }
 
         function filterProducts() {
-            const searchInput = document.getElementById('search-input');
-            const search = searchInput ? searchInput.value.toLowerCase().trim() : '';
+            const search = document.getElementById('search-input')?.value.toLowerCase().trim() || '';
             const filtered = products.filter(p => {
-                const matchesCat = currentFilterCategory === 'all' || p.category === currentFilterCategory;
-                const matchesSearch = p.name.toLowerCase().includes(search);
-                return matchesCat && matchesSearch;
+                const matchCat = currentCategory === 'all' || p.category === currentCategory;
+                const matchSearch = p.name.toLowerCase().includes(search);
+                return matchCat && matchSearch;
             });
             renderProducts(filtered);
         }
 
-        function renderProducts(productList = products) {
+        function renderProducts(list) {
             const grid = document.getElementById('products-grid');
             if (!grid) return;
-            grid.innerHTML = productList.map(prod => `
-                <div onclick="addToCart(${prod.id})" class="bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-md cursor-pointer flex flex-col">
+            grid.innerHTML = list.map(p => `
+                <div onclick="addToCart(${p.id})" class="bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-md cursor-pointer flex flex-col">
                     <div class="h-28 bg-slate-100 relative">
-                        <img src="${prod.image}" alt="${prod.name}" onerror="this.src='https://placehold.co/300x200/e2e8f0/64748b?text=Product'" class="w-full h-full object-cover">
-                        <span class="absolute top-2 right-2 bg-emerald-600 text-white text-xs font-bold px-2 py-1 rounded-full">${prod.price.toLocaleString('km-KH')} ៛</span>
+                        <img src="${p.image}" alt="${p.name}" onerror="this.src='https://placehold.co/300x200/e2e8f0/64748b?text=Product'" class="w-full h-full object-cover">
+                        <span class="absolute top-2 right-2 bg-emerald-600 text-white text-xs font-bold px-2 py-1 rounded-full">${p.price.toLocaleString('km-KH')} ៛</span>
                     </div>
                     <div class="p-2.5 flex-1 flex flex-col justify-between">
-                        <h3 class="font-semibold text-slate-800 text-xs">${prod.name}</h3>
+                        <h3 class="font-semibold text-slate-800 text-xs">${p.name}</h3>
                     </div>
                 </div>
             `).join('');
         }
 
-        function addToCart(productId) {
-            const product = products.find(p => p.id === productId);
-            if (!product) return;
-            const existing = cart.find(item => item.id === productId);
-            if (existing) existing.qty += 1;
-            else cart.push({ ...product, qty: 1 });
+        function addToCart(id) {
+            const p = products.find(prod => prod.id === id);
+            if (!p) return;
+            const exist = cart.find(c => c.id === id);
+            if (exist) exist.qty += 1;
+            else cart.push({ ...p, qty: 1 });
             renderCart();
         }
 
@@ -260,9 +254,8 @@
         }
 
         function clearCart() { cart = []; renderCart(); }
-        function toggleProductManagementModal() { document.getElementById('product-mgmt-modal').classList.toggle('hidden'); }
+        function toggleProductModal() { document.getElementById('product-modal').classList.toggle('hidden'); }
 
-        // Ultra Image Compressor (Under 30KB)
         function compressImage(file, callback) {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -284,65 +277,44 @@
 
         function handleAddNewProduct(e) {
             if (e) e.preventDefault();
-            const nameInput = document.getElementById('new-prod-name');
-            const priceInput = document.getElementById('new-prod-price');
-            const catSelect = document.getElementById('new-prod-cat');
+            const name = document.getElementById('new-prod-name').value.trim();
+            const price = parseFloat(document.getElementById('new-prod-price').value);
+            const category = document.getElementById('new-prod-cat').value || 'drink';
             const imgInput = document.getElementById('new-prod-img');
             const fileInput = document.getElementById('new-prod-file');
-            const submitBtn = document.getElementById('btn-submit-prod');
 
-            const name = nameInput.value.trim();
-            const price = parseFloat(priceInput.value);
-            const category = catSelect.value || 'drink';
+            if (!name || isNaN(price) || price <= 0) return;
 
-            if (!name || isNaN(price) || price <= 0) {
-                alert('សូមបញ្ចូលឈ្មោះ និងតម្លៃឱ្យបានត្រឹមត្រូវ!');
-                return;
-            }
-
-            submitBtn.disabled = true;
-
-            const finalizeSave = (imgData) => {
-                const newProd = {
-                    id: Date.now(),
-                    name: name,
-                    price: price,
-                    category: category,
-                    image: imgData
-                };
-
+            const saveProd = (imgSrc) => {
+                const newProd = { id: Date.now(), name, price, category, image: imgSrc };
                 products.unshift(newProd);
-                saveProductsToStorage(products);
+                saveProducts(products);
 
-                nameInput.value = '';
-                priceInput.value = '';
+                document.getElementById('new-prod-name').value = '';
+                document.getElementById('new-prod-price').value = '';
                 imgInput.value = '';
                 fileInput.value = '';
 
-                currentFilterCategory = "all";
+                currentCategory = "all";
                 renderCategoryFilters();
                 filterProducts();
                 renderMgmtProductList();
-                toggleProductManagementModal();
-
-                submitBtn.disabled = false;
-                alert(`បានរក្សាទុក "${name}" រួចរាល់!`);
+                toggleProductModal();
+                alert(`បានបន្ថែម "${name}" រួចរាល់!`);
             };
 
             if (fileInput.files && fileInput.files[0]) {
-                compressImage(fileInput.files[0], function(compressedSrc) {
-                    finalizeSave(compressedSrc);
-                });
+                compressImage(fileInput.files[0], saveProd);
             } else {
-                const urlImage = imgInput.value.trim() || 'https://placehold.co/300x200/e2e8f0/64748b?text=' + encodeURIComponent(name);
-                finalizeSave(urlImage);
+                const url = imgInput.value.trim() || 'https://placehold.co/300x200/e2e8f0/64748b?text=' + encodeURIComponent(name);
+                saveProd(url);
             }
         }
 
         function deleteProduct(id) {
             products = products.filter(p => p.id !== id);
-            cart = cart.filter(item => item.id !== id);
-            saveProductsToStorage(products);
+            cart = cart.filter(c => c.id !== id);
+            saveProducts(products);
             filterProducts();
             renderCart();
             renderMgmtProductList();
@@ -352,7 +324,7 @@
             const container = document.getElementById('mgmt-prod-list');
             if (!container) return;
             if (products.length === 0) {
-                container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400">មិនទាន់មានទំនិញក្នុងបញ្ជី</div>`;
+                container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400">មិនទាន់មានទំនិញ</div>`;
                 return;
             }
             container.innerHTML = products.map(p => `
