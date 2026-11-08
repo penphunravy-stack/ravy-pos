@@ -1,72 +1,22 @@
-        function handleAddNewProduct(event) {
-            if (event) event.preventDefault();
-            
-            const nameInput = document.getElementById('new-prod-name');
-            const priceInput = document.getElementById('new-prod-price');
-            const catSelect = document.getElementById('new-prod-cat');
-            const imgInput = document.getElementById('new-prod-img');
-            const fileInput = document.getElementById('new-prod-file');
-
-            const name = nameInput.value.trim();
-            const rawPrice = parseFloat(priceInput.value);
-            const category = catSelect.value || 'drink';
-
-            if (!name || isNaN(rawPrice) || rawPrice <= 0) {
-                alert('សូមបញ្ចូលឈ្មោះទំនិញ និងតម្លៃជាលុយរៀលឲ្យបានត្រឹមត្រូវ!');
-                return;
-            }
-
-            const saveProductWithImg = (imageSrc) => {
-                const newProduct = {
-                    id: Date.now(),
-                    name: name,
-                    price: rawPrice,
-                    category: category,
-                    image: imageSrc
-                };
-
-                products.unshift(newProduct);
-                setStorage('ravy_pos_products', products);
-                
-                // Reset Form Fields
-                nameInput.value = '';
-                priceInput.value = '';
-                imgInput.value = '';
-                fileInput.value = '';
-
-                // Reset filter to 'all' so new item is always visible
-                currentFilterCategory = "all";
-                renderCategoryFilters();
-                filterProducts();
-                renderMgmtProductList();
-                toggleProductManagementModal();
-
-                alert(`បន្ថែមទំនិញ "${name}" ជោគជ័យ និងបានរក្សាទុក!`);
-            };
-
-            // Read & Compress Local File if selected
-            if (fileInput.files && fileInput.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const img = new Image();
-                    img.onload = function() {
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
-                        const maxW = 300;
-                        const scale = maxW / img.width;
-                        canvas.width = maxW;
-                        canvas.height = img.height * scale;
-                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
-                        saveProductWithImg(compressedBase64);
-                    };
-                    img.src = e.target.result;
-                };
-                reader.readAsDataURL(fileInput.files[0]);
-            } else {
-                const urlImage = imgInput.value.trim() || 'https://placehold.co/300x200/e2e8f0/64748b?text=' + encodeURIComponent(name);
-                saveProductWithImg(urlImage);
-            }
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ប្រព័ន្ធគ្រប់គ្រងការលក់ - POS System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        * { font-family: 'Kantumruy Pro', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        @media print {
+            body * { visibility: hidden; }
+            #printable-receipt, #printable-receipt * { visibility: visible; }
+            #printable-receipt { position: absolute; left: 0; top: 0; width: 100%; }
         }
     </style>
 </head>
@@ -93,14 +43,6 @@
                 <i class="fa-solid fa-qrcode"></i>
                 <span class="hidden sm:inline font-semibold">កំណត់ KHQR</span>
             </button>
-            <button onclick="toggleSalesHistoryModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs sm:text-sm px-3 py-2 rounded-lg transition flex items-center gap-2">
-                <i class="fa-solid fa-chart-line"></i>
-                <span class="hidden md:inline">ប្រវត្តិលក់</span>
-            </button>
-            <div class="text-right text-xs border-l border-emerald-500 pl-3 hidden lg:block">
-                <div id="current-date" class="font-semibold">--/--/----</div>
-                <div id="current-time" class="text-emerald-200">--:--:--</div>
-            </div>
         </div>
     </header>
 
@@ -135,126 +77,18 @@
             <div id="cart-items-list" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3 min-h-[200px]"></div>
 
             <div class="p-4 border-t border-slate-100 bg-slate-50 flex flex-col gap-2 text-sm">
-                <div class="flex justify-between text-slate-500 items-center">
-                    <span>លេខវិក្កយបត្រ:</span>
-                    <input type="text" id="receipt-no-input" value="1001" class="w-24 px-2 py-0.5 text-right border rounded focus:outline-none focus:ring-1 focus:ring-emerald-500 font-semibold text-slate-700">
-                </div>
                 <div class="flex justify-between text-slate-500">
                     <span>សរុបរង:</span>
                     <span id="cart-subtotal" class="font-semibold text-slate-700">0 ៛</span>
                 </div>
-                <div class="flex justify-between text-slate-500 items-center">
-                    <span>បញ្ចុះតម្លៃ (%):</span>
-                    <input type="number" id="discount-input" min="0" max="100" value="0" onchange="updateCartSummary()" onkeyup="updateCartSummary()" class="w-16 px-2 py-0.5 text-right border rounded focus:outline-none focus:ring-1 focus:ring-emerald-500">
-                </div>
-                <div class="flex justify-between text-slate-500 items-center">
-                    <span>ពន្ធ VAT (%):</span>
-                    <input type="number" id="vat-input" min="0" max="100" value="0" onchange="updateCartSummary()" onkeyup="updateCartSummary()" class="w-16 px-2 py-0.5 text-right border rounded focus:outline-none focus:ring-1 focus:ring-emerald-500 font-semibold text-slate-700">
-                </div>
-                <hr class="my-1 border-slate-200">
                 <div class="flex justify-between items-center text-lg font-bold text-slate-800">
                     <span>សរុបរួម:</span>
                     <div id="cart-total-khr" class="text-xl font-bold text-emerald-600">0 ៛</div>
                 </div>
 
-                <button onclick="openPaymentModal()" id="checkout-btn" disabled class="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-slate-300 disabled:cursor-not-allowed transition flex justify-center items-center gap-2">
+                <button onclick="alert('ការទូទាត់ប្រាក់បានជោគជ័យ!'); clearCart();" id="checkout-btn" disabled class="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-slate-300 disabled:cursor-not-allowed transition flex justify-center items-center gap-2">
                     <i class="fa-solid fa-credit-card"></i> គិតប្រាក់ (Checkout)
                 </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modals -->
-    <!-- Payment Modal -->
-    <div id="payment-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col">
-            <div class="bg-emerald-600 text-white p-4 flex justify-between items-center">
-                <h3 class="font-bold text-lg"><i class="fa-solid fa-wallet mr-2"></i>ទូទាត់ប្រាក់</h3>
-                <button onclick="closePaymentModal()" class="text-emerald-100 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
-            </div>
-            <div class="p-5 flex flex-col gap-4">
-                <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100 text-center">
-                    <span class="text-xs text-emerald-600 uppercase font-semibold">ចំនួនទឹកប្រាក់ត្រូវបង់</span>
-                    <div id="modal-total-khr" class="text-2xl font-black text-emerald-700">0 ៛</div>
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <button type="button" onclick="selectPaymentMethod('cash')" id="btn-pay-cash" class="p-2.5 border-2 border-emerald-500 bg-emerald-50 text-emerald-700 rounded-xl font-medium text-sm flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-money-bill-wave"></i> ប្រាក់ស្រស់ (Cash)
-                    </button>
-                    <button type="button" onclick="selectPaymentMethod('qr')" id="btn-pay-qr" class="p-2.5 border-2 border-slate-200 text-slate-600 rounded-xl font-medium text-sm flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-qrcode"></i> QR / វេរប្រាក់
-                    </button>
-                </div>
-                <div id="cash-input-section" class="flex flex-col gap-3">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-1">ប្រាក់ទទួលបាន (៛ KHR)</label>
-                        <input type="number" id="received-khr" step="100" placeholder="0" oninput="calculateChange()" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 font-bold text-slate-800 text-lg">
-                    </div>
-                    <div class="grid grid-cols-4 gap-1.5">
-                        <button onclick="setFastCash(10000)" class="py-1 px-1 text-xs bg-slate-100 hover:bg-slate-200 border rounded font-medium text-center">10,000៛</button>
-                        <button onclick="setFastCash(20000)" class="py-1 px-1 text-xs bg-slate-100 hover:bg-slate-200 border rounded font-medium text-center">20,000៛</button>
-                        <button onclick="setFastCash(50000)" class="py-1 px-1 text-xs bg-slate-100 hover:bg-slate-200 border rounded font-medium text-center">50,000៛</button>
-                        <button onclick="setExactCash()" class="py-1 px-1 text-xs bg-emerald-100 text-emerald-700 border border-emerald-300 rounded font-bold text-center">គ្រប់ចំនួន</button>
-                    </div>
-                    <div class="bg-slate-50 p-3 rounded-lg border flex justify-between items-center">
-                        <span class="text-sm text-slate-600 font-medium">ប្រាក់អាប់ជូនអតិថិជន:</span>
-                        <div id="change-khr" class="font-bold text-emerald-600 text-lg">0 ៛</div>
-                    </div>
-                </div>
-                <div id="qr-input-section" class="hidden flex-col items-center justify-center p-4 bg-slate-50 border rounded-xl">
-                    <div class="p-3 bg-white rounded-xl shadow-md border flex flex-col items-center text-center">
-                        <img id="qr-code-img" src="" alt="KHQR Code" class="w-44 h-44 object-contain">
-                        <span id="qr-store-name-display" class="text-xs font-bold text-slate-800 mt-2 uppercase">RAVY STORE</span>
-                        <span id="qr-account-no-display" class="text-[11px] font-semibold text-emerald-600">096 255 7766</span>
-                    </div>
-                </div>
-            </div>
-            <div class="p-4 bg-slate-50 border-t flex gap-3">
-                <button onclick="closePaymentModal()" class="flex-1 py-2.5 border rounded-xl text-slate-600 font-medium hover:bg-slate-100">បោះបង់</button>
-                <button onclick="processPayment()" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow transition flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-print"></i> បញ្ចប់ & បោះពុម្ព
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Receipt Modal -->
-    <div id="receipt-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-4">
-            <div id="printable-receipt" class="text-slate-800 text-xs font-mono bg-white p-2">
-                <div class="text-center mb-3">
-                    <h2 class="text-base font-bold uppercase font-sans">ហាងទំនិញ Ravy Store</h2>
-                    <p class="text-[10px] text-slate-500">ស្វាយរៀង | 096 255 7766 / 088 413 2413</p>
-                    <div class="border-b border-dashed my-2"></div>
-                    <div class="flex justify-between text-[10px] text-slate-600">
-                        <span id="receipt-id">វិក្កយបត្រ: #1001</span>
-                        <span id="receipt-date">--/--/----</span>
-                    </div>
-                </div>
-                <table class="w-full text-left mb-3">
-                    <thead>
-                        <tr class="border-b">
-                            <th class="py-1">ទំនិញ</th>
-                            <th class="py-1 text-center">ចំនួន</th>
-                            <th class="py-1 text-right">តម្លៃ</th>
-                        </tr>
-                    </thead>
-                    <tbody id="receipt-items-body"></tbody>
-                </table>
-                <div class="border-b border-dashed my-2"></div>
-                <div class="flex flex-col gap-1 text-xs">
-                    <div class="flex justify-between"><span>សរុបរង:</span><span id="receipt-subtotal">0 ៛</span></div>
-                    <div class="flex justify-between font-bold text-sm border-t pt-1 mt-1"><span>សរុបរួម:</span><span id="receipt-total">0 ៛</span></div>
-                    <div class="flex justify-between text-slate-600"><span>ប្រាក់ទទួលបាន:</span><span id="receipt-paid">0 ៛</span></div>
-                    <div class="flex justify-between text-slate-600"><span>ប្រាក់អាប់:</span><span id="receipt-change">0 ៛</span></div>
-                </div>
-                <div class="text-center mt-4">
-                    <p class="font-sans text-[11px] font-semibold text-slate-700">សូមអរគុណសម្រាប់ការគាំទ្រ!</p>
-                </div>
-            </div>
-            <div class="flex flex-col gap-2 border-t pt-3">
-                <button onclick="printReceipt('80mm')" class="w-full py-2 bg-slate-800 text-white rounded-lg text-xs font-semibold">បោះពុម្ព (80mm)</button>
-                <button onclick="closeReceiptAndReset()" class="w-full py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold">រួចរាល់ (Done)</button>
             </div>
         </div>
     </div>
@@ -263,7 +97,7 @@
     <div id="product-mgmt-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden flex flex-col max-h-[85vh]">
             <div class="bg-emerald-600 text-white p-4 flex justify-between items-center">
-                <h3 class="font-bold text-lg"><i class="fa-solid fa-boxes-stacked mr-2"></i>គ្រប់គ្រង & បន្ថែមផលិតផល</h3>
+                <h3 class="font-bold text-lg"><i class="fa-solid fa-boxes-stacked mr-2"></i>បន្ថែមទំនិញថ្មី</h3>
                 <button onclick="toggleProductManagementModal()" class="text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             <div class="p-4 overflow-y-auto flex flex-col gap-6">
@@ -287,119 +121,69 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold mb-1">រូបភាពទំនិញ (ជ្រើសរើសរូបភាព)</label>
-                            <input type="file" id="new-prod-file" accept="image/*" class="w-full p-1 text-[11px] border border-slate-300 rounded-lg bg-white mb-1">
-                            <input type="url" id="new-prod-img" placeholder="ឬបិទ Linkhttps://..." class="w-full p-2 border rounded-lg text-xs">
+                            <label class="block text-xs font-semibold mb-1">រូបភាព (ជ្រើសរើសពីទូរស័ព្ទ)</label>
+                            <input type="file" id="new-prod-file" accept="image/*" class="w-full p-1 text-[11px] border rounded-lg bg-white mb-1">
+                            <input type="url" id="new-prod-img" placeholder="ឬបិទ Link https://..." class="w-full p-2 border rounded-lg text-xs">
                         </div>
                     </div>
-                    <button type="submit" class="py-2.5 px-4 bg-emerald-600 text-white font-bold rounded-lg text-xs shadow">រក្សាទុកទំនិញថ្មី</button>
+                    <button type="submit" id="btn-submit-prod" class="py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs shadow flex justify-center items-center gap-2">
+                        <span>រក្សាទុកទំនិញថ្មី</span>
+                    </button>
                 </form>
                 <div id="mgmt-prod-list" class="border rounded-xl divide-y max-h-60 overflow-y-auto"></div>
             </div>
         </div>
     </div>
 
-    <!-- KHQR Modal -->
-    <div id="khqr-config-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col">
-            <div class="bg-red-600 text-white p-4 flex justify-between items-center">
-                <h3 class="font-bold text-lg"><i class="fa-solid fa-qrcode mr-2"></i>កែប្រែ KHQR ហាង</h3>
-                <button onclick="toggleKhqrConfigModal()"><i class="fa-solid fa-xmark text-xl"></i></button>
-            </div>
-            <div class="p-5 flex flex-col gap-4">
-                <div>
-                    <label class="block text-xs font-bold mb-1">ឈ្មោះគណនី / ឈ្មោះហាង *</label>
-                    <input type="text" id="khqr-name-input" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm font-semibold">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold mb-1">លេខគណនី / ទូរស័ព្ទ *</label>
-                    <input type="text" id="khqr-acc-input" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm font-semibold">
-                </div>
-            </div>
-            <div class="p-4 bg-slate-50 border-t flex gap-3">
-                <button onclick="saveKhqrSettings()" class="w-full py-2 bg-red-600 text-white rounded-xl text-xs font-bold">រក្សាទុក KHQR</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Sales History Modal -->
-    <div id="history-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden flex flex-col max-h-[85vh]">
-            <div class="bg-emerald-600 text-white p-4 flex justify-between items-center">
-                <h3 class="font-bold text-lg"><i class="fa-solid fa-chart-line mr-2"></i>ប្រវត្តិលក់ទំនិញ</h3>
-                <button onclick="toggleSalesHistoryModal()"><i class="fa-solid fa-xmark text-xl"></i></button>
-            </div>
-            <div class="p-4 overflow-y-auto flex flex-col gap-4">
-                <div class="bg-emerald-50 p-4 rounded-xl border flex justify-between items-center">
-                    <div>
-                        <span class="text-xs text-emerald-600 font-semibold">ចំណូលសរុប៖</span>
-                        <div id="total-history-sales" class="text-2xl font-black text-emerald-700">0 ៛</div>
-                    </div>
-                </div>
-                <div class="border rounded-xl overflow-hidden">
-                    <table class="w-full text-left text-xs">
-                        <thead class="bg-slate-100 font-bold">
-                            <tr>
-                                <th class="p-3">លេខវិក្កយបត្រ</th>
-                                <th class="p-3">កាលបរិច្ឆេទ</th>
-                                <th class="p-3 text-right">សរុប</th>
-                            </tr>
-                        </thead>
-                        <tbody id="history-table-body" class="divide-y"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script>
-        function getStorage(key, defaultValue) {
-            try {
-                const item = localStorage.getItem(key);
-                return item ? JSON.parse(item) : defaultValue;
-            } catch (e) { return defaultValue; }
-        }
-        function setStorage(key, value) {
-            try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
-        }
-
-        let products = getStorage('ravy_pos_products', [
+        const STORAGE_KEY = 'ravy_store_products_v2';
+        
+        const defaultProducts = [
             { id: 1, name: "កាហ្វេទឹកដោះគោ (Iced Latte)", category: "drink", price: 9000, image: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=300" },
             { id: 2, name: "កាហ្វេខ្មៅ (Americano)", category: "drink", price: 7000, image: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300" },
             { id: 3, name: "តែបៃតងទឹកដោះគោ (Matcha)", category: "drink", price: 10000, image: "https://images.unsplash.com/photo-1536256263959-770b48d82b0a?w=300" },
-            { id: 4, name: "នំប៉័ងប័រសូកូឡា (Croissant)", category: "bakery", price: 7500, image: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300" },
-            { id: 5, name: "បាយឆាសាច់ជ្រូក (Fried Rice)", category: "food", price: 12000, image: "https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=300" }
-        ]);
+            { id: 4, name: "នំប៉័ងប័រសូកូឡា (Croissant)", category: "bakery", price: 7500, image: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300" }
+        ];
 
+        function loadProductsFromStorage() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+                }
+            } catch (e) {
+                console.error("Storage load error:", e);
+            }
+            return defaultProducts;
+        }
+
+        function saveProductsToStorage(data) {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            } catch (e) {
+                alert("មិនអាច Save ចូល Memory ទូរស័ព្ទបានទេ! សូមជ្រើសរើសរូបភាពតូចជាងនេះ។");
+            }
+        }
+
+        let products = loadProductsFromStorage();
         const categories = [
             { id: "all", name: "ទាំងអស់" },
             { id: "drink", name: "ភេសជ្ជៈ" },
             { id: "food", name: "អាហារ" },
-            { id: "bakery", name: "នំ" }
+            { id: "bakery", name: "នំ" },
+            { id: "snack", name: "សម្រន់" }
         ];
 
         let cart = [];
-        let salesHistory = getStorage('ravy_pos_sales_history', []);
         let currentFilterCategory = "all";
-        let activePaymentMethod = "cash";
-        let khqrConfig = getStorage('ravy_khqr_config', { name: "RAVY STORE", accountNo: "096 255 7766 / 088 413 2413" });
 
         function initApp() {
-            updateClock();
-            setInterval(updateClock, 1000);
             renderCategoryFilters();
-            renderProducts();
+            filterProducts();
             renderMgmtProductList();
         }
         document.addEventListener('DOMContentLoaded', initApp);
-
-        function updateClock() {
-            const dateElem = document.getElementById('current-date');
-            const timeElem = document.getElementById('current-time');
-            const now = new Date();
-            if (dateElem) dateElem.textContent = now.toLocaleDateString('km-KH');
-            if (timeElem) timeElem.textContent = now.toLocaleTimeString('km-KH');
-        }
 
         function renderCategoryFilters() {
             const container = document.getElementById('category-filters');
@@ -418,7 +202,8 @@
         }
 
         function filterProducts() {
-            const search = document.getElementById('search-input').value.toLowerCase().trim();
+            const searchInput = document.getElementById('search-input');
+            const search = searchInput ? searchInput.value.toLowerCase().trim() : '';
             const filtered = products.filter(p => {
                 const matchesCat = currentFilterCategory === 'all' || p.category === currentFilterCategory;
                 const matchesSearch = p.name.toLowerCase().includes(search);
@@ -452,16 +237,6 @@
             renderCart();
         }
 
-        function updateCartQty(productId, delta) {
-            const item = cart.find(i => i.id === productId);
-            if (!item) return;
-            item.qty += delta;
-            if (item.qty <= 0) cart = cart.filter(i => i.id !== productId);
-            renderCart();
-        }
-
-        function clearCart() { cart = []; renderCart(); }
-
         function renderCart() {
             const list = document.getElementById('cart-items-list');
             document.getElementById('cart-count-badge').textContent = cart.reduce((s, i) => s + i.qty, 0);
@@ -475,188 +250,99 @@
                             <h4 class="font-semibold text-slate-800">${item.name}</h4>
                             <div class="text-slate-500">${item.price.toLocaleString('km-KH')} ៛ × ${item.qty}</div>
                         </div>
-                        <div class="flex items-center gap-1">
-                            <button onclick="updateCartQty(${item.id}, -1)" class="w-6 h-6 bg-white border rounded font-bold">-</button>
-                            <span class="w-5 text-center font-bold">${item.qty}</span>
-                            <button onclick="updateCartQty(${item.id}, 1)" class="w-6 h-6 bg-white border rounded font-bold">+</button>
-                        </div>
                     </div>
                 `).join('');
             }
-            updateCartSummary();
-        }
-
-        function updateCartSummary() {
             const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-            const discountPercent = parseFloat(document.getElementById('discount-input').value) || 0;
-            const vatPercent = parseFloat(document.getElementById('vat-input').value) || 0;
-            const afterDiscount = Math.max(0, subtotal * (1 - discountPercent / 100));
-            const total = Math.round(afterDiscount * (1 + vatPercent / 100));
-
             document.getElementById('cart-subtotal').textContent = `${subtotal.toLocaleString('km-KH')} ៛`;
-            document.getElementById('cart-total-khr').textContent = `${total.toLocaleString('km-KH')} ៛`;
+            document.getElementById('cart-total-khr').textContent = `${subtotal.toLocaleString('km-KH')} ៛`;
             document.getElementById('checkout-btn').disabled = cart.length === 0;
         }
 
-        function openPaymentModal() {
-            const totalText = document.getElementById('cart-total-khr').textContent;
-            document.getElementById('modal-total-khr').textContent = totalText;
-            const totalVal = parseInt(totalText.replace(/[^0-9]/g, '')) || 0;
-            document.getElementById('received-khr').value = totalVal;
-            calculateChange();
-            
-            const qrImg = document.getElementById('qr-code-img');
-            qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=KHQR_${khqrConfig.name}_${totalVal}`;
-            document.getElementById('payment-modal').classList.remove('hidden');
-        }
-
-        function closePaymentModal() { document.getElementById('payment-modal').classList.add('hidden'); }
-
-        function selectPaymentMethod(method) {
-            activePaymentMethod = method;
-            const cashSec = document.getElementById('cash-input-section');
-            const qrSec = document.getElementById('qr-input-section');
-            if (method === 'cash') {
-                cashSec.classList.remove('hidden');
-                qrSec.classList.add('hidden');
-            } else {
-                qrSec.classList.remove('hidden');
-                cashSec.classList.add('hidden');
-            }
-        }
-
-        function setFastCash(amount) {
-            document.getElementById('received-khr').value = amount;
-            calculateChange();
-        }
-
-        function setExactCash() {
-            const totalVal = parseInt(document.getElementById('modal-total-khr').textContent.replace(/[^0-9]/g, '')) || 0;
-            document.getElementById('received-khr').value = totalVal;
-            calculateChange();
-        }
-
-        function calculateChange() {
-            const totalVal = parseInt(document.getElementById('modal-total-khr').textContent.replace(/[^0-9]/g, '')) || 0;
-            const receivedVal = parseInt(document.getElementById('received-khr').value) || 0;
-            const change = Math.max(0, receivedVal - totalVal);
-            document.getElementById('change-khr').textContent = `${change.toLocaleString('km-KH')} ៛`;
-        }
-
-        function processPayment() {
-            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-            const totalVal = parseInt(document.getElementById('modal-total-khr').textContent.replace(/[^0-9]/g, '')) || 0;
-            const receivedVal = parseInt(document.getElementById('received-khr').value) || totalVal;
-            const change = Math.max(0, receivedVal - totalVal);
-
-            const receiptNo = document.getElementById('receipt-no-input').value || '1001';
-            document.getElementById('receipt-id').textContent = `វិក្កយបត្រ: #${receiptNo}`;
-            document.getElementById('receipt-date').textContent = new Date().toLocaleDateString('km-KH');
-
-            document.getElementById('receipt-items-body').innerHTML = cart.map(i => `
-                <tr class="border-b">
-                    <td class="py-1">${i.name}</td>
-                    <td class="py-1 text-center">${i.qty}</td>
-                    <td class="py-1 text-right">${(i.price * i.qty).toLocaleString('km-KH')} ៛</td>
-                </tr>
-            `).join('');
-
-            document.getElementById('receipt-subtotal').textContent = `${subtotal.toLocaleString('km-KH')} ៛`;
-            document.getElementById('receipt-total').textContent = `${totalVal.toLocaleString('km-KH')} ៛`;
-            document.getElementById('receipt-paid').textContent = `${receivedVal.toLocaleString('km-KH')} ៛`;
-            document.getElementById('receipt-change').textContent = `${change.toLocaleString('km-KH')} ៛`;
-
-            salesHistory.unshift({ id: receiptNo, date: new Date().toLocaleString('km-KH'), totalKHR: totalVal });
-            setStorage('ravy_pos_sales_history', salesHistory);
-
-            closePaymentModal();
-            document.getElementById('receipt-modal').classList.remove('hidden');
-        }
-
-        function printReceipt(size) {
-            document.body.className = size === 'a4' ? 'print-a4' : 'print-80mm';
-            window.print();
-        }
-
-        function closeReceiptAndReset() {
-            document.getElementById('receipt-modal').classList.add('hidden');
-            cart = [];
-            renderCart();
-            const receiptInput = document.getElementById('receipt-no-input');
-            receiptInput.value = (parseInt(receiptInput.value) || 1000) + 1;
-        }
-
+        function clearCart() { cart = []; renderCart(); }
         function toggleProductManagementModal() { document.getElementById('product-mgmt-modal').classList.toggle('hidden'); }
-        function toggleKhqrConfigModal() { document.getElementById('khqr-config-modal').classList.toggle('hidden'); }
-        function toggleSalesHistoryModal() {
-            const modal = document.getElementById('history-modal');
-            modal.classList.toggle('hidden');
-            if (!modal.classList.contains('hidden')) {
-                const total = salesHistory.reduce((s, h) => s + h.totalKHR, 0);
-                document.getElementById('total-history-sales').textContent = `${total.toLocaleString('km-KH')} ៛`;
-                document.getElementById('history-table-body').innerHTML = salesHistory.map(h => `
-                    <tr>
-                        <td class="p-3 font-bold text-emerald-600">#${h.id}</td>
-                        <td class="p-3 text-slate-500">${h.date}</td>
-                        <td class="p-3 text-right font-bold">${h.totalKHR.toLocaleString('km-KH')} ៛</td>
-                    </tr>
-                `).join('');
-            }
+
+        // Ultra Image Compressor (Under 30KB)
+        function compressImage(file, callback) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const maxWidth = 200;
+                    const scale = maxWidth / img.width;
+                    canvas.width = maxWidth;
+                    canvas.height = img.height * scale;
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    callback(canvas.toDataURL('image/jpeg', 0.5));
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
         }
 
         function handleAddNewProduct(e) {
-            e.preventDefault();
+            if (e) e.preventDefault();
             const nameInput = document.getElementById('new-prod-name');
             const priceInput = document.getElementById('new-prod-price');
             const catSelect = document.getElementById('new-prod-cat');
             const imgInput = document.getElementById('new-prod-img');
             const fileInput = document.getElementById('new-prod-file');
+            const submitBtn = document.getElementById('btn-submit-prod');
 
             const name = nameInput.value.trim();
             const price = parseFloat(priceInput.value);
-            const category = catSelect.value;
+            const category = catSelect.value || 'drink';
 
-            if (!name || isNaN(price)) return;
+            if (!name || isNaN(price) || price <= 0) {
+                alert('សូមបញ្ចូលឈ្មោះ និងតម្លៃឱ្យបានត្រឹមត្រូវ!');
+                return;
+            }
 
-            const saveAndRender = (imageSrc) => {
+            submitBtn.disabled = true;
+
+            const finalizeSave = (imgData) => {
                 const newProd = {
                     id: Date.now(),
                     name: name,
                     price: price,
                     category: category,
-                    image: imageSrc
+                    image: imgData
                 };
 
                 products.unshift(newProd);
-                setStorage('ravy_pos_products', products);
+                saveProductsToStorage(products);
 
-                // Reset form inputs
                 nameInput.value = '';
                 priceInput.value = '';
                 imgInput.value = '';
                 fileInput.value = '';
 
+                currentFilterCategory = "all";
+                renderCategoryFilters();
                 filterProducts();
                 renderMgmtProductList();
                 toggleProductManagementModal();
+
+                submitBtn.disabled = false;
+                alert(`បានរក្សាទុក "${name}" រួចរាល់!`);
             };
 
-            if (fileInput && fileInput.files && fileInput.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(evt) {
-                    saveAndRender(evt.target.result);
-                };
-                reader.readAsDataURL(fileInput.files[0]);
+            if (fileInput.files && fileInput.files[0]) {
+                compressImage(fileInput.files[0], function(compressedSrc) {
+                    finalizeSave(compressedSrc);
+                });
             } else {
                 const urlImage = imgInput.value.trim() || 'https://placehold.co/300x200/e2e8f0/64748b?text=' + encodeURIComponent(name);
-                saveAndRender(urlImage);
+                finalizeSave(urlImage);
             }
         }
 
         function deleteProduct(id) {
             products = products.filter(p => p.id !== id);
             cart = cart.filter(item => item.id !== id);
-            setStorage('ravy_pos_products', products);
+            saveProductsToStorage(products);
             filterProducts();
             renderCart();
             renderMgmtProductList();
@@ -670,26 +356,19 @@
                 return;
             }
             container.innerHTML = products.map(p => `
-                <div class="p-2.5 flex items-center justify-between hover:bg-slate-50 transition">
+                <div class="p-2.5 flex items-center justify-between hover:bg-slate-50">
                     <div class="flex items-center gap-3">
-                        <img src="${p.image}" onerror="this.src='https://placehold.co/300x200/e2e8f0/64748b?text=Product'" class="w-10 h-10 object-cover rounded border">
+                        <img src="${p.image}" class="w-10 h-10 object-cover rounded border">
                         <div>
                             <div class="font-bold text-xs text-slate-800">${p.name}</div>
                             <div class="text-[10px] text-emerald-600 font-bold">${p.price.toLocaleString('km-KH')} ៛</div>
                         </div>
                     </div>
-                    <button onclick="deleteProduct(${p.id})" class="text-rose-500 hover:text-rose-700 text-xs px-2 py-1 rounded bg-rose-50 border border-rose-100 font-semibold">
+                    <button onclick="deleteProduct(${p.id})" class="text-rose-500 hover:text-rose-700 text-xs px-2 py-1 rounded bg-rose-50 font-semibold">
                         <i class="fa-solid fa-trash"></i> លុប
                     </button>
                 </div>
             `).join('');
-        }
-
-        function saveKhqrSettings() {
-            khqrConfig.name = document.getElementById('khqr-name-input').value;
-            khqrConfig.accountNo = document.getElementById('khqr-acc-input').value;
-            setStorage('ravy_khqr_config', khqrConfig);
-            toggleKhqrConfigModal();
         }
     </script>
 </body>
