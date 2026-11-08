@@ -1,61 +1,71 @@
-<!DOCTYPE html>
-<html lang="km">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ប្រព័ន្ធគ្រប់គ្រងការលក់ - POS System</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <style>
-        * {
-            font-family: 'Kantumruy Pro', sans-serif;
-        }
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-        @media print {
-            body * {
-                visibility: hidden;
+        function handleAddNewProduct(event) {
+            if (event) event.preventDefault();
+            
+            const nameInput = document.getElementById('new-prod-name');
+            const priceInput = document.getElementById('new-prod-price');
+            const catSelect = document.getElementById('new-prod-cat');
+            const imgInput = document.getElementById('new-prod-img');
+            const fileInput = document.getElementById('new-prod-file');
+
+            const name = nameInput.value.trim();
+            const rawPrice = parseFloat(priceInput.value);
+            const category = catSelect.value || 'drink';
+
+            if (!name || isNaN(rawPrice) || rawPrice <= 0) {
+                alert('សូមបញ្ចូលឈ្មោះទំនិញ និងតម្លៃជាលុយរៀលឲ្យបានត្រឹមត្រូវ!');
+                return;
             }
-            #printable-receipt, #printable-receipt * {
-                visibility: visible;
-            }
-            #printable-receipt {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-            }
-            body.print-a4 #printable-receipt {
-                width: 210mm !important;
-                max-width: 210mm !important;
-                font-size: 14px !important;
-                padding: 20px !important;
-            }
-            body.print-a4 #printable-receipt h2 {
-                font-size: 22px !important;
-            }
-            body.print-a4 #printable-receipt table {
-                font-size: 13px !important;
-            }
-            body.print-80mm #printable-receipt {
-                width: 80mm !important;
-                max-width: 80mm !important;
-                font-size: 11px !important;
+
+            const saveProductWithImg = (imageSrc) => {
+                const newProduct = {
+                    id: Date.now(),
+                    name: name,
+                    price: rawPrice,
+                    category: category,
+                    image: imageSrc
+                };
+
+                products.unshift(newProduct);
+                setStorage('ravy_pos_products', products);
+                
+                // Reset Form Fields
+                nameInput.value = '';
+                priceInput.value = '';
+                imgInput.value = '';
+                fileInput.value = '';
+
+                // Reset filter to 'all' so new item is always visible
+                currentFilterCategory = "all";
+                renderCategoryFilters();
+                filterProducts();
+                renderMgmtProductList();
+                toggleProductManagementModal();
+
+                alert(`បន្ថែមទំនិញ "${name}" ជោគជ័យ និងបានរក្សាទុក!`);
+            };
+
+            // Read & Compress Local File if selected
+            if (fileInput.files && fileInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        const maxW = 300;
+                        const scale = maxW / img.width;
+                        canvas.width = maxW;
+                        canvas.height = img.height * scale;
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                        saveProductWithImg(compressedBase64);
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(fileInput.files[0]);
+            } else {
+                const urlImage = imgInput.value.trim() || 'https://placehold.co/300x200/e2e8f0/64748b?text=' + encodeURIComponent(name);
+                saveProductWithImg(urlImage);
             }
         }
     </style>
@@ -273,11 +283,13 @@
                                 <option value="drink">ភេសជ្ជៈ</option>
                                 <option value="food">អាហារ</option>
                                 <option value="bakery">នំ</option>
+                                <option value="snack">សម្រន់</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold mb-1">Link រូបភាព</label>
-                            <input type="url" id="new-prod-img" placeholder="https://..." class="w-full p-2 border rounded-lg text-xs">
+                            <label class="block text-xs font-semibold mb-1">រូបភាពទំនិញ (ជ្រើសរើសរូបភាព)</label>
+                            <input type="file" id="new-prod-file" accept="image/*" class="w-full p-1 text-[11px] border border-slate-300 rounded-lg bg-white mb-1">
+                            <input type="url" id="new-prod-img" placeholder="ឬបិទ Linkhttps://..." class="w-full p-2 border rounded-lg text-xs">
                         </div>
                     </div>
                     <button type="submit" class="py-2.5 px-4 bg-emerald-600 text-white font-bold rounded-lg text-xs shadow">រក្សាទុកទំនិញថ្មី</button>
@@ -594,30 +606,81 @@
 
         function handleAddNewProduct(e) {
             e.preventDefault();
-            const name = document.getElementById('new-prod-name').value;
-            const price = parseFloat(document.getElementById('new-prod-price').value);
-            const category = document.getElementById('new-prod-cat').value;
-            const image = document.getElementById('new-prod-img').value || 'https://placehold.co/300x200/e2e8f0/64748b?text=' + encodeURIComponent(name);
+            const nameInput = document.getElementById('new-prod-name');
+            const priceInput = document.getElementById('new-prod-price');
+            const catSelect = document.getElementById('new-prod-cat');
+            const imgInput = document.getElementById('new-prod-img');
+            const fileInput = document.getElementById('new-prod-file');
 
-            products.unshift({ id: Date.now(), name, price, category, image });
+            const name = nameInput.value.trim();
+            const price = parseFloat(priceInput.value);
+            const category = catSelect.value;
+
+            if (!name || isNaN(price)) return;
+
+            const saveAndRender = (imageSrc) => {
+                const newProd = {
+                    id: Date.now(),
+                    name: name,
+                    price: price,
+                    category: category,
+                    image: imageSrc
+                };
+
+                products.unshift(newProd);
+                setStorage('ravy_pos_products', products);
+
+                // Reset form inputs
+                nameInput.value = '';
+                priceInput.value = '';
+                imgInput.value = '';
+                fileInput.value = '';
+
+                filterProducts();
+                renderMgmtProductList();
+                toggleProductManagementModal();
+            };
+
+            if (fileInput && fileInput.files && fileInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    saveAndRender(evt.target.result);
+                };
+                reader.readAsDataURL(fileInput.files[0]);
+            } else {
+                const urlImage = imgInput.value.trim() || 'https://placehold.co/300x200/e2e8f0/64748b?text=' + encodeURIComponent(name);
+                saveAndRender(urlImage);
+            }
+        }
+
+        function deleteProduct(id) {
+            products = products.filter(p => p.id !== id);
+            cart = cart.filter(item => item.id !== id);
             setStorage('ravy_pos_products', products);
             filterProducts();
+            renderCart();
             renderMgmtProductList();
-            toggleProductManagementModal();
         }
 
         function renderMgmtProductList() {
             const container = document.getElementById('mgmt-prod-list');
             if (!container) return;
+            if (products.length === 0) {
+                container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400">មិនទាន់មានទំនិញក្នុងបញ្ជី</div>`;
+                return;
+            }
             container.innerHTML = products.map(p => `
-                <div class="p-2.5 flex items-center justify-between">
+                <div class="p-2.5 flex items-center justify-between hover:bg-slate-50 transition">
                     <div class="flex items-center gap-3">
-                        <img src="${p.image}" class="w-10 h-10 object-cover rounded">
+                        <img src="${p.image}" onerror="this.src='https://placehold.co/300x200/e2e8f0/64748b?text=Product'" class="w-10 h-10 object-cover rounded border">
                         <div>
-                            <div class="font-bold text-xs">${p.name}</div>
+                            <div class="font-bold text-xs text-slate-800">${p.name}</div>
                             <div class="text-[10px] text-emerald-600 font-bold">${p.price.toLocaleString('km-KH')} ៛</div>
                         </div>
                     </div>
+                    <button onclick="deleteProduct(${p.id})" class="text-rose-500 hover:text-rose-700 text-xs px-2 py-1 rounded bg-rose-50 border border-rose-100 font-semibold">
+                        <i class="fa-solid fa-trash"></i> លុប
+                    </button>
                 </div>
             `).join('');
         }
