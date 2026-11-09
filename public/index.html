@@ -522,12 +522,15 @@
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
-                    const maxWidth = 180;
+                    const maxWidth = 150;
                     const scale = maxWidth / img.width;
                     canvas.width = maxWidth;
                     canvas.height = img.height * scale;
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    callback(canvas.toDataURL('image/jpeg', 0.4));
+                    callback(canvas.toDataURL('image/jpeg', 0.3));
+                };
+                img.onerror = function() {
+                    callback('https://placehold.co/300x200/e2e8f0/64748b?text=Product');
                 };
                 img.src = e.target.result;
             };
@@ -536,36 +539,57 @@
 
         function handleAddNewProduct(e) {
             if (e) e.preventDefault();
-            const name = document.getElementById('new-prod-name').value.trim();
-            const price = parseFloat(document.getElementById('new-prod-price').value);
-            const category = document.getElementById('new-prod-cat').value || 'drink';
+            const nameInput = document.getElementById('new-prod-name');
+            const priceInput = document.getElementById('new-prod-price');
+            const stockInput = document.getElementById('new-prod-stock');
+            const catSelect = document.getElementById('new-prod-cat');
             const imgInput = document.getElementById('new-prod-img');
             const fileInput = document.getElementById('new-prod-file');
 
-            if (!name || isNaN(price) || price <= 0) return;
+            const name = nameInput ? nameInput.value.trim() : '';
+            const price = priceInput ? parseFloat(priceInput.value) : 0;
+            const stock = stockInput ? (parseInt(stockInput.value) || 0) : 50;
+            const category = catSelect ? (catSelect.value || 'drink') : 'drink';
+
+            if (!name || isNaN(price) || price <= 0) {
+                alert('សូមបញ្ចូលឈ្មោះទំនិញ និងតម្លៃឱ្យបានត្រឹមត្រូវ!');
+                return;
+            }
 
             const saveProd = (imgSrc) => {
-                const newProd = { id: Date.now(), name, price, category, image: imgSrc };
+                const newProd = { 
+                    id: Date.now(), 
+                    name: name, 
+                    price: price, 
+                    stock: stock, 
+                    category: category, 
+                    image: imgSrc 
+                };
+
                 products.unshift(newProd);
                 saveStorage(PROD_KEY, products);
 
-                document.getElementById('new-prod-name').value = '';
-                document.getElementById('new-prod-price').value = '';
-                imgInput.value = '';
-                fileInput.value = '';
+                // Clear input forms
+                if (nameInput) nameInput.value = '';
+                if (priceInput) priceInput.value = '';
+                if (stockInput) stockInput.value = '50';
+                if (imgInput) imgInput.value = '';
+                if (fileInput) fileInput.value = '';
 
                 currentCategory = "all";
                 renderCategoryFilters();
                 filterProducts();
                 renderMgmtProductList();
                 toggleProductModal();
-                alert(`បានបន្ថែម "${name}" រួចរាល់!`);
+                alert(`បានបន្ថែមទំនិញ "${name}" ដោយជោគជ័យ!`);
             };
 
-            if (fileInput.files && fileInput.files[0]) {
+            if (fileInput && fileInput.files && fileInput.files[0]) {
                 compressImage(fileInput.files[0], saveProd);
             } else {
-                const url = imgInput.value.trim() || 'https://placehold.co/300x200/e2e8f0/64748b?text=' + encodeURIComponent(name);
+                const url = (imgInput && imgInput.value.trim()) 
+                    ? imgInput.value.trim() 
+                    : 'https://placehold.co/300x200/e2e8f0/64748b?text=' + encodeURIComponent(name);
                 saveProd(url);
             }
         }
