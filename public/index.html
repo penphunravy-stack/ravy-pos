@@ -22,7 +22,7 @@
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col font-sans">
 
-    <!-- Navigation Bar -->
+    <!-- Header Navigation -->
     <header class="bg-emerald-600 text-white shadow-md flex-none z-10 px-4 py-3 flex justify-between items-center sticky top-0">
         <div class="flex items-center gap-3">
             <div class="bg-white text-emerald-600 p-2 rounded-lg font-bold text-xl shadow">
@@ -39,16 +39,20 @@
                 <i class="fa-solid fa-plus-circle"></i>
                 <span class="font-semibold">បន្ថែមទំនិញ</span>
             </button>
-            <button onclick="toggleKhqrModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs sm:text-sm px-3 py-2 rounded-lg transition flex items-center gap-1.5">
-                <i class="fa-solid fa-qrcode"></i>
-                <span class="hidden sm:inline font-semibold">KHQR</span>
+            <button onclick="toggleStockModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs sm:text-sm px-3 py-2 rounded-lg transition flex items-center gap-1.5 shadow">
+                <i class="fa-solid fa-boxes-packing"></i>
+                <span class="font-semibold">មើលស្តុក</span>
+            </button>
+            <button onclick="toggleSalesHistoryModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs sm:text-sm px-3 py-2 rounded-lg transition flex items-center gap-1.5 shadow">
+                <i class="fa-solid fa-chart-line"></i>
+                <span class="font-semibold">របាយការណ៍លក់</span>
             </button>
         </div>
     </header>
 
     <!-- Main Content -->
     <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
-        <!-- Left Product Grid -->
+        <!-- Products Grid -->
         <div class="flex-1 flex flex-col p-3 sm:p-4 gap-4 overflow-y-auto">
             <div class="bg-white p-3 rounded-xl shadow-sm flex flex-col sm:flex-row gap-3 items-center justify-between">
                 <div class="relative w-full sm:w-72">
@@ -61,7 +65,7 @@
             <div id="products-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4"></div>
         </div>
 
-        <!-- Right Order Summary -->
+        <!-- Cart Sidebar -->
         <div class="w-full md:w-96 bg-white border-t md:border-t-0 md:border-l border-slate-200 flex flex-col shadow-lg">
             <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                 <div class="flex items-center gap-2">
@@ -77,6 +81,10 @@
             <div id="cart-items-list" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3 min-h-[200px]"></div>
 
             <div class="p-4 border-t border-slate-100 bg-slate-50 flex flex-col gap-2 text-sm">
+                <div class="flex justify-between text-slate-500 items-center">
+                    <span>លេខវិក្កយបត្រ:</span>
+                    <input type="text" id="receipt-no-input" value="1001" class="w-20 px-2 py-0.5 text-right border rounded font-bold text-slate-700">
+                </div>
                 <div class="flex justify-between text-slate-500">
                     <span>សរុបរង:</span>
                     <span id="cart-subtotal" class="font-semibold text-slate-700">0 ៛</span>
@@ -86,14 +94,14 @@
                     <div id="cart-total-khr" class="text-xl font-bold text-emerald-600">0 ៛</div>
                 </div>
 
-                <button onclick="alert('ទូទាត់ប្រាក់បានជោគជ័យ!'); clearCart();" id="checkout-btn" disabled class="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-slate-300 disabled:cursor-not-allowed transition flex justify-center items-center gap-2">
+                <button onclick="processCheckout()" id="checkout-btn" disabled class="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-slate-300 disabled:cursor-not-allowed transition flex justify-center items-center gap-2">
                     <i class="fa-solid fa-credit-card"></i> គិតប្រាក់ (Checkout)
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Product Modal -->
+    <!-- Add Product Modal -->
     <div id="product-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden flex flex-col max-h-[85vh]">
             <div class="bg-emerald-600 text-white p-4 flex justify-between items-center">
@@ -112,57 +120,132 @@
                             <input type="number" id="new-prod-price" min="0" step="100" required class="w-full p-2 border rounded-lg text-xs font-bold">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold mb-1">ប្រភេទទំនិញ</label>
-                            <select id="new-prod-cat" class="w-full p-2 border rounded-lg text-xs bg-white">
-                                <option value="drink">ភេសជ្ជៈ</option>
-                                <option value="food">អាហារ</option>
-                                <option value="bakery">នំ</option>
-                                <option value="snack">សម្រន់</option>
-                            </select>
+                            <label class="block text-xs font-semibold mb-1">ចំនួនក្នុងស្តុក (Stock) *</label>
+                            <input type="number" id="new-prod-stock" min="0" value="50" required class="w-full p-2 border rounded-lg text-xs font-bold">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold mb-1">រូបភាព (ជ្រើសរើសពីទូរស័ព្ទ)</label>
-                            <input type="file" id="new-prod-file" accept="image/*" class="w-full p-1 text-[11px] border rounded-lg bg-white mb-1">
-                            <input type="url" id="new-prod-img" placeholder="ឬបិទ Link https://..." class="w-full p-2 border rounded-lg text-xs">
-                        </div>
+                            <label class="block text-xs font-semibold mb-1">ប្រភេទទំនិញ</label>
+                            <select id="new-prod-cat" class="w-full p-2 border rounded-lg text-xs bg-white">
+    <!-- Stock Management Modal -->
+    <div id="stock-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div class="bg-emerald-600 text-white p-4 flex justify-between items-center">
+                <h3 class="font-bold text-lg flex items-center gap-2"><i class="fa-solid fa-boxes-packing"></i> គ្រប់គ្រងស្តុកទំនិញ (Inventory Stock)</h3>
+                <button onclick="toggleStockModal()" class="text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+
+            <div class="p-4 overflow-y-auto flex flex-col gap-4">
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div class="bg-emerald-50 border border-emerald-100 p-3 rounded-xl">
+                        <span class="text-[11px] text-emerald-600 font-bold uppercase">ទំនិញសរុប</span>
+                        <div id="stock-total-items" class="text-xl font-black text-emerald-700">0 មុខ</div>
                     </div>
-                    <button type="submit" id="btn-submit-prod" class="py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs shadow flex justify-center items-center gap-2">
-                        <span>រក្សាទុកទំនិញថ្មី</span>
+                    <div class="bg-amber-50 border border-amber-100 p-3 rounded-xl">
+                        <span class="text-[11px] text-amber-600 font-bold uppercase">ជិតអស់ពីស្តុក (≤ 5)</span>
+                        <div id="stock-low-items" class="text-xl font-black text-amber-700">0 មុខ</div>
+                    </div>
+                    <div class="bg-rose-50 border border-rose-100 p-3 rounded-xl col-span-2 sm:col-span-1">
+                        <span class="text-[11px] text-rose-600 font-bold uppercase">អស់ពីស្តុក (Out of Stock)</span>
+                        <div id="stock-out-items" class="text-xl font-black text-rose-700">0 មុខ</div>
+                    </div>
+                </div>
+
+                <div class="border border-slate-200 rounded-xl overflow-hidden">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-100 text-slate-600 border-b font-bold">
+                            <tr>
+                                <th class="p-3">ទំនិញ</th>
+                                <th class="p-3 text-center">តម្លៃ</th>
+                                <th class="p-3 text-center">ស្តុកបច្ចុប្បន្ន</th>
+                                <th class="p-3 text-right">បន្ថែម/កែប្រែស្តុក</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stock-table-body" class="divide-y divide-slate-100 text-slate-700"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="p-3 bg-slate-50 border-t flex justify-end">
+                <button onclick="toggleStockModal()" class="px-4 py-2 bg-slate-200 text-slate-700 text-xs rounded-lg hover:bg-slate-300 font-medium">បិទ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sales Report / History Modal -->
+    <div id="history-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div class="bg-emerald-600 text-white p-4 flex justify-between items-center">
+                <h3 class="font-bold text-lg flex items-center gap-2"><i class="fa-solid fa-chart-line"></i> របាយការណ៍លក់ទំនិញ</h3>
+                <button onclick="toggleSalesHistoryModal()" class="text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+
+            <div class="p-4 overflow-y-auto flex flex-col gap-4">
+                <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-100 flex justify-between items-center">
+                    <div>
+                        <span class="text-xs text-emerald-600 font-semibold uppercase">ចំណូលសរុប (Total Revenue)៖</span>
+                        <div id="total-history-sales" class="text-2xl font-black text-emerald-700">0 ៛</div>
+                    </div>
+                    <button onclick="clearSalesHistory()" class="text-xs text-rose-600 hover:text-rose-800 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1">
+                        <i class="fa-solid fa-trash-can"></i> សម្អាតប្រវត្តិលក់
                     </button>
-                </form>
-                <div id="mgmt-prod-list" class="border rounded-xl divide-y max-h-60 overflow-y-auto"></div>
+                </div>
+
+                <div class="border border-slate-200 rounded-xl overflow-hidden">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-100 text-slate-600 border-b font-bold">
+                            <tr>
+                                <th class="p-3">លេខវិក្កយបត្រ</th>
+                                <th class="p-3">កាលបរិច្ឆេទ</th>
+                                <th class="p-3">ចំនួន</th>
+                                <th class="p-3 text-right">សរុប</th>
+                                <th class="p-3 text-center">ស្ថានភាព</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body" class="divide-y divide-slate-100 text-slate-700"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="p-3 bg-slate-50 border-t flex justify-end">
+                <button onclick="toggleSalesHistoryModal()" class="px-4 py-2 bg-slate-200 text-slate-700 text-xs rounded-lg hover:bg-slate-300 font-medium">បិទ</button>
             </div>
         </div>
     </div>
 
     <script>
-        const STORAGE_KEY = 'ravy_pos_products_v3';
-        
+        const PROD_KEY = 'ravy_pos_products_v5';
+        const SALES_KEY = 'ravy_pos_sales_v5';
+
         const defaultProducts = [
-            { id: 1, name: "កាហ្វេទឹកដោះគោ (Iced Latte)", category: "drink", price: 9000, image: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=300" },
-            { id: 2, name: "កាហ្វេខ្មៅ (Americano)", category: "drink", price: 7000, image: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300" },
-            { id: 3, name: "តែបៃតងទឹកដោះគោ (Matcha)", category: "drink", price: 10000, image: "https://images.unsplash.com/photo-1536256263959-770b48d82b0a?w=300" },
-            { id: 4, name: "នំប៉័ងប័រសូកូឡា (Croissant)", category: "bakery", price: 7500, image: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300" }
+            { id: 1, name: "កាហ្វេទឹកដោះគោ (Iced Latte)", category: "drink", price: 9000, stock: 20, image: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=300" },
+            { id: 2, name: "កាហ្វេខ្មៅ (Americano)", category: "drink", price: 7000, stock: 15, image: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300" },
+            { id: 3, name: "តែបៃតងទឹកដោះគោ (Matcha)", category: "drink", price: 10000, stock: 8, image: "https://images.unsplash.com/photo-1536256263959-770b48d82b0a?w=300" },
+            { id: 4, name: "នំប៉័ងប័រសូកូឡា (Croissant)", category: "bakery", price: 7500, stock: 4, image: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300" }
         ];
 
-        function loadProducts() {
+        function loadStorage(key, fallback) {
             try {
-                const data = localStorage.getItem(STORAGE_KEY);
-                return data ? JSON.parse(data) : defaultProducts;
+                const data = localStorage.getItem(key);
+                if (data) {
+                    const parsed = JSON.parse(data);
+                    if (Array.isArray(parsed)) {
+                        return parsed.map(item => ({ ...item, stock: item.stock !== undefined ? item.stock : 50 }));
+                    }
+                }
+            } catch(e) {}
+            return fallback;
+        }
+
+        function saveStorage(key, data) {
+            try {
+                localStorage.setItem(key, JSON.stringify(data));
             } catch(e) {
-                return defaultProducts;
+                console.error("Storage limit:", e);
             }
         }
 
-        function saveProducts(data) {
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-            } catch(e) {
-                alert("មិនអាចរក្សាទុកបាន! សូមជ្រើសរើសរូបភាពទំហំតូចជាងនេះ។");
-            }
-        }
-
-        let products = loadProducts();
+        let products = loadStorage(PROD_KEY, defaultProducts);
+        let salesHistory = loadStorage(SALES_KEY, []);
         let cart = [];
         let currentCategory = "all";
 
@@ -209,53 +292,229 @@
         function renderProducts(list) {
             const grid = document.getElementById('products-grid');
             if (!grid) return;
-            grid.innerHTML = list.map(p => `
-                <div onclick="addToCart(${p.id})" class="bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-md cursor-pointer flex flex-col">
+            grid.innerHTML = list.map(p => {
+                const isOutOfStock = p.stock <= 0;
+                return `
+                <div onclick="${isOutOfStock ? '' : `addToCart(${p.id})`}" class="bg-white rounded-xl shadow-sm border overflow-hidden ${isOutOfStock ? 'opacity-60 cursor-not-allowed' : 'hover:shadow-md cursor-pointer'} flex flex-col relative">
                     <div class="h-28 bg-slate-100 relative">
                         <img src="${p.image}" alt="${p.name}" onerror="this.src='https://placehold.co/300x200/e2e8f0/64748b?text=Product'" class="w-full h-full object-cover">
-                        <span class="absolute top-2 right-2 bg-emerald-600 text-white text-xs font-bold px-2 py-1 rounded-full">${p.price.toLocaleString('km-KH')} ៛</span>
+                        <span class="absolute top-2 right-2 bg-emerald-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow">${p.price.toLocaleString('km-KH')} ៛</span>
+                        ${isOutOfStock ? `<span class="absolute inset-0 bg-slate-900/60 text-white flex items-center justify-center font-bold text-xs">អស់ពីស្តុក</span>` : ''}
                     </div>
                     <div class="p-2.5 flex-1 flex flex-col justify-between">
                         <h3 class="font-semibold text-slate-800 text-xs">${p.name}</h3>
+                        <div class="mt-1 flex justify-between items-center text-[10px]">
+                            <span class="text-slate-400">ស្តុក៖</span>
+                            <span class="font-bold ${p.stock <= 5 ? 'text-rose-600' : 'text-slate-600'}">${p.stock}</span>
+                        </div>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         function addToCart(id) {
             const p = products.find(prod => prod.id === id);
             if (!p) return;
+            
             const exist = cart.find(c => c.id === id);
+            const currentCartQty = exist ? exist.qty : 0;
+
+            if (currentCartQty + 1 > p.stock) {
+                alert(`ទំនិញ "${p.name}" មានស្តុកត្រឹមតែ ${p.stock} ប៉ុណ្ណោះ!`);
+                return;
+            }
+
             if (exist) exist.qty += 1;
             else cart.push({ ...p, qty: 1 });
             renderCart();
         }
+        // Checkout Process & Deduct Stock
+        function processCheckout() {
+            if (cart.length === 0) return;
 
-        function renderCart() {
-            const list = document.getElementById('cart-items-list');
-            document.getElementById('cart-count-badge').textContent = cart.reduce((s, i) => s + i.qty, 0);
-
-            if (cart.length === 0) {
-                list.innerHTML = `<div class="text-center text-slate-400 py-8 text-xs">មិនទាន់មានទំនិញក្នុងកន្ត្រក</div>`;
-            } else {
-                list.innerHTML = cart.map(item => `
-                    <div class="flex justify-between items-center bg-slate-50 p-2.5 rounded-lg border text-xs">
-                        <div class="flex-1">
-                            <h4 class="font-semibold text-slate-800">${item.name}</h4>
-                            <div class="text-slate-500">${item.price.toLocaleString('km-KH')} ៛ × ${item.qty}</div>
-                        </div>
-                    </div>
-                `).join('');
+            // Check stock availability
+            for (let item of cart) {
+                const prod = products.find(p => p.id === item.id);
+                if (!prod || prod.stock < item.qty) {
+                    alert(`ទំនិញ "${item.name}" មិនមានស្តុកគ្រប់គ្រាន់ទេ!`);
+                    return;
+                }
             }
-            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-            document.getElementById('cart-subtotal').textContent = `${subtotal.toLocaleString('km-KH')} ៛`;
-            document.getElementById('cart-total-khr').textContent = `${subtotal.toLocaleString('km-KH')} ៛`;
-            document.getElementById('checkout-btn').disabled = cart.length === 0;
+
+            // Deduct Stock
+            cart.forEach(item => {
+                const prod = products.find(p => p.id === item.id);
+                if (prod) {
+                    prod.stock -= item.qty;
+                }
+            });
+            saveStorage(PROD_KEY, products);
+
+            const totalKHR = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            const receiptNo = document.getElementById('receipt-no-input').value || '1001';
+
+            // Record Sales
+            const record = {
+                id: receiptNo,
+                date: new Date().toLocaleString('km-KH'),
+                itemCount: cart.reduce((s, i) => s + i.qty, 0),
+                totalKHR: totalKHR
+            };
+
+            salesHistory.unshift(record);
+            saveStorage(SALES_KEY, salesHistory);
+
+            alert(`ទូទាត់ប្រាក់ជោគជ័យ #${receiptNo}!\nចំនួនទឹកប្រាក់: ${totalKHR.toLocaleString('km-KH')} ៛`);
+
+            clearCart();
+            filterProducts();
+            const nextNo = parseInt(receiptNo) + 1;
+            if (!isNaN(nextNo)) document.getElementById('receipt-no-input').value = nextNo;
         }
 
-        function clearCart() { cart = []; renderCart(); }
+        // Modals
         function toggleProductModal() { document.getElementById('product-modal').classList.toggle('hidden'); }
+        function toggleSalesHistoryModal() {
+            const modal = document.getElementById('history-modal');
+            modal.classList.toggle('hidden');
+            if (!modal.classList.contains('hidden')) renderSalesHistory();
+        }
 
+        function toggleStockModal() {
+            const modal = document.getElementById('stock-modal');
+            modal.classList.toggle('hidden');
+            if (!modal.classList.contains('hidden')) renderStockTable();
+        }
+
+        function renderStockTable() {
+            const tbody = document.getElementById('stock-table-body');
+            if (!tbody) return;
+
+            document.getElementById('stock-total-items').textContent = `${products.length} មុខ`;
+            document.getElementById('stock-low-items').textContent = `${products.filter(p => p.stock > 0 && p.stock <= 5).length} មុខ`;
+            document.getElementById('stock-out-items').textContent = `${products.filter(p => p.stock <= 0).length} មុខ`;
+
+            tbody.innerHTML = products.map(p => `
+                <tr class="hover:bg-slate-50">
+                    <td class="p-3 flex items-center gap-2">
+                        <img src="${p.image}" class="w-8 h-8 object-cover rounded border">
+                        <span class="font-bold text-slate-800">${p.name}</span>
+                    </td>
+                    <td class="p-3 text-center font-semibold text-emerald-600">${p.price.toLocaleString('km-KH')} ៛</td>
+                    <td class="p-3 text-center">
+                        <span class="px-2 py-0.5 rounded-full font-bold text-xs ${p.stock <= 0 ? 'bg-rose-100 text-rose-700' : p.stock <= 5 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}">
+                            ${p.stock}
+                        </span>
+                    </td>
+                    <td class="p-3 text-right">
+                        <div class="flex items-center justify-end gap-1">
+                            <input type="number" id="stock-input-${p.id}" value="${p.stock}" min="0" class="w-16 p-1 border rounded text-center text-xs font-bold">
+                            <button onclick="updateProductStock(${p.id})" class="bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 rounded text-xs font-semibold">
+                                រក្សាទុក
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateProductStock(id) {
+            const input = document.getElementById(`stock-input-${id}`);
+            if (!input) return;
+            const newStock = parseInt(input.value);
+            if (isNaN(newStock) || newStock < 0) return;
+
+            const prod = products.find(p => p.id === id);
+            if (prod) {
+                prod.stock = newStock;
+                saveStorage(PROD_KEY, products);
+                filterProducts();
+                renderStockTable();
+                alert(`បានអាប់ដេតស្តុក "${prod.name}" ទៅជា ${newStock} រួចរាល់!`);
+            }
+        }
+
+        function handleAddNewProduct(e) {
+            if (e) e.preventDefault();
+            const name = document.getElementById('new-prod-name').value.trim();
+            const price = parseFloat(document.getElementById('new-prod-price').value);
+            const stock = parseInt(document.getElementById('new-prod-stock').value) || 0;
+            const category = document.getElementById('new-prod-cat').value || 'drink';
+            const imgInput = document.getElementById('new-prod-img');
+            const fileInput = document.getElementById('new-prod-file');
+
+            if (!name || isNaN(price) || price <= 0) return;
+
+            const saveProd = (imgSrc) => {
+                const newProd = { id: Date.now(), name, price, stock, category, image: imgSrc };
+                products.unshift(newProd);
+                saveStorage(PROD_KEY, products);
+
+                document.getElementById('new-prod-name').value = '';
+                document.getElementById('new-prod-price').value = '';
+                document.getElementById('new-prod-stock').value = '50';
+                imgInput.value = '';
+                fileInput.value = '';
+
+                currentCategory = "all";
+                renderCategoryFilters();
+                filterProducts();
+                renderMgmtProductList();
+                toggleProductModal();
+                alert(`បានបន្ថែម "${name}" ជាមួយស្តុកចំនួន ${stock} រួចរាល់!`);
+            };
+
+            salesHistory.unshift(record);
+            saveStorage(SALES_KEY, salesHistory);
+
+            alert(`ទូទាត់ប្រាក់ជោគជ័យ #${receiptNo}!\nចំនួនទឹកប្រាក់: ${totalKHR.toLocaleString('km-KH')} ៛`);
+
+            clearCart();
+            const nextNo = parseInt(receiptNo) + 1;
+            if (!isNaN(nextNo)) document.getElementById('receipt-no-input').value = nextNo;
+        }
+
+        // Modals
+        function toggleProductModal() { document.getElementById('product-modal').classList.toggle('hidden'); }
+        function toggleSalesHistoryModal() {
+            const modal = document.getElementById('history-modal');
+            modal.classList.toggle('hidden');
+            if (!modal.classList.contains('hidden')) renderSalesHistory();
+        }
+
+        function renderSalesHistory() {
+            const tbody = document.getElementById('history-table-body');
+            const totalDisplay = document.getElementById('total-history-sales');
+            if (!tbody || !totalDisplay) return;
+
+            const totalSum = salesHistory.reduce((s, h) => s + h.totalKHR, 0);
+            totalDisplay.textContent = `${totalSum.toLocaleString('km-KH')} ៛`;
+
+            if (salesHistory.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400">មិនទាន់មានទិន្នន័យលក់នៅឡើយទេ</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = salesHistory.map(h => `
+                <tr class="hover:bg-slate-50">
+                    <td class="p-3 font-bold text-emerald-600">#${h.id}</td>
+                    <td class="p-3 text-slate-500 text-xs">${h.date}</td>
+                    <td class="p-3 font-medium">${h.itemCount} មុខ</td>
+                    <td class="p-3 text-right font-bold text-slate-800">${h.totalKHR.toLocaleString('km-KH')} ៛</td>
+                    <td class="p-3 text-center">
+                        <span class="bg-emerald-100 text-emerald-700 text-[10px] px-2 py-0.5 rounded-full font-bold">ជោគជ័យ</span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function clearSalesHistory() {
+            salesHistory = [];
+            localStorage.removeItem(SALES_KEY);
+            renderSalesHistory();
+        }
+
+        // Image Compress & Add Product
         function compressImage(file, callback) {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -263,12 +522,12 @@
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
-                    const maxWidth = 200;
+                    const maxWidth = 180;
                     const scale = maxWidth / img.width;
                     canvas.width = maxWidth;
                     canvas.height = img.height * scale;
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    callback(canvas.toDataURL('image/jpeg', 0.5));
+                    callback(canvas.toDataURL('image/jpeg', 0.4));
                 };
                 img.src = e.target.result;
             };
@@ -288,7 +547,7 @@
             const saveProd = (imgSrc) => {
                 const newProd = { id: Date.now(), name, price, category, image: imgSrc };
                 products.unshift(newProd);
-                saveProducts(products);
+                saveStorage(PROD_KEY, products);
 
                 document.getElementById('new-prod-name').value = '';
                 document.getElementById('new-prod-price').value = '';
@@ -314,7 +573,7 @@
         function deleteProduct(id) {
             products = products.filter(p => p.id !== id);
             cart = cart.filter(c => c.id !== id);
-            saveProducts(products);
+            saveStorage(PROD_KEY, products);
             filterProducts();
             renderCart();
             renderMgmtProductList();
